@@ -1,53 +1,65 @@
 '''
-Main Kernel Ridge Regression (KRR) code to do element-wise molecular kernel regression
+Main kernel module to handle molecule-wise and element-wise kernel method
+Author: Nguyen Thien Phuc Tu
+Last update: 2026-10-13
 '''
 
 import torch
 
-def gaussian_kernel(x, gamma):
-
-
-def gaussian_kernel_pair(x, y, gamma):
-    
-
-def gaussian_kernel(gamma, x, y=None):
+def gaussian_kernel_single(x, gamma):
     '''
     Generic Gaussian kernel
-    Input:
-        x: [N1, Nfeature]
-        y: [N2, Nfeature] optional
-    Output: [N1, N2] or [N1, N1]
-    To save the memory, use:
+    Use the relations:
         ||x-y||^2 = ||x||^2 + ||y||^2 - 2xy^T
-    with broadcasting for ||x|| and ||y||
+    with broadcasting for ||x|| and ||y|| to save memory on [Nx, Ny, feature]
+    Input:
+        x: [N, feature]
+    Output:
+        [N, N]
     '''
-    if y is None:
-        x2 = np.einsum('ij,ij->i', x, x)
-        xxt = np.einsum('ij,kj->ik', x, x)
-        diff = x2[:, None] + x2[None, :] - 2*xxt
-    else:
-        x2 = np.einsum('ij,ij->i', x, x)
-        y2 = np.einsum('ij,ij->i', y, y)
-        xy = np.einsum('ij,kj->ik', x, y)
-        diff = x2[:, None] + y2[None, :] - 2*xy
-    return np.exp(-gamma*diff)
+    x_sq = torch.einsum('ij,ij->i', x, x)
+    x_xt = torch.einsum('ij,kj->ik', x, x)
+    diff = x_sq[:,None] + x_sq[None,:] - 2*x_xt
+    return torch.exp(-gamma*diff)
 
-def convert_kernel(kernel, n_x, n_y):
+def gaussian_kernel_pair(x, y, gamma):
     '''
-    Convert the atomic kernel to molecular kernel
-    n_x, n_y: List of number of atom in each molecule of x, y
-    Mainly used for each elements
+    Generic Gaussian kernel for two different matrix
+    Use the relations:
+        ||x-y||^2 = ||x||^2 + ||y||^2 - 2xy^T
+    with broadcasting for ||x|| and ||y|| to save memory on [Nx, Ny, feature]
+    Input:
+        x: [Nx, feature]
+        y: [Ny, feature]
+    Output:
+        [Nx, Ny]
     '''
-    n_atom_y = kernel.shape[1]
-    n_mol_x = len(n_x)
-    n_mol_y = len(n_y)
-    x_index = np.repeat(np.arange(n_mol_x), n_x)
-    y_index = np.repeat(np.arange(n_mol_y), n_y)
-    tmp = np.zeros((n_mol_x, n_atom_y))
-    np.add.at(tmp, (x_index, slice(None, None, None)), kernel)
-    results = np.zeros((n_mol_x, n_mol_y))
-    np.add.at(results, (slice(None, None, None), y_index), tmp)
+    x_sq = torch.einsum('ij,ij->i', x, x)
+    y_sq = torch.einsum('ij,ij->i', y, y)
+    xy = torch.einsum('ij,kj->ik', x, y)
+    diff = x_sq[:,None] + y_sq[None, :] - 2*xy
+    return torch.exp(-gamma*diff)
+
+def convert_atomic_kernel(kernel, n_atoms, dim=0):
+    '''
+    Convert the dimension dim of kernel from atomic to molecule
+    n_atoms: list of number of atoms in each molecule
+    '''
+    n_mol = n_atoms.shape[0]
+    index = torch.repeat_interleave(torch.arange(n_mol, device=kernel.device), n_atoms)
+    if dim == 0:
+        results = torch.zeros(n_mol, kernel.shape[1], dtype=kernel.dtype, device=kernel.device)
+    elif dim == 1:
+        results = torch.zeros(kernel.shape[0], n_mol, dtype=kernel.dtype, device=kernel.device)
+    else:
+        raise ValueError(f'Invalid dim valuation of {dim}')
+    results.index_add_(dim, index, kernel)
     return results
+
+def construct_molecular_gaussian_kernel(elements, )
+
+
+    
 
 def gaussian_molecular_kernel(elements, gamma, zx_list, x_list, zy_list=None, y_list=None):
     '''

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlip_kernel"
+version = "0.0.1"
+description = ""
+authors = [{ name = "Nguyen Thien Phuc Tu" }]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "torch",
+]
+
+[project.urls]
+Repository = "https://github.com/zeldery/mlip_kernel"
+
+[tool.setuptools.packages.find]
+where = ["src"]
