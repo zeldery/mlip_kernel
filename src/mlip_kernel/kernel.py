@@ -171,6 +171,17 @@ def construct_atomic_kernel_pair(atomic_numbers1, descriptors1,
         results[:,col] += kernel_tmp
     return results
 
+
+
+
+
+
+
+
+
+#########################################################
+# History
+
 # class GaussianRidgeRegression:
 #     '''
     
